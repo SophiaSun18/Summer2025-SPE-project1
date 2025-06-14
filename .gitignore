@@ -1,0 +1,6 @@
+*log.awsrun/
+*.o
+*.d
+snailspeed/rotate
+snailspeed/.buildmode
+.DS_Store
