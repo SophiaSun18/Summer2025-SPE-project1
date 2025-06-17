@@ -215,3 +215,81 @@ void rotate_block_64_old(uint32_t block_size, uint64_t block[]) {
     } 
 
 }
+
+// get, set, and rotate for block size = 32
+void get_block_32(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, uint32_t block_size, uint32_t block_dst[]) {
+
+    for (uint32_t y = 0; y < block_size; y++) {
+        uint8_t *src = img + (j + y) * row_size + i / 8;
+        block_dst[y] = ((uint32_t)src[0] << 24) |
+                        ((uint32_t)src[1] << 16) |
+                        ((uint32_t)src[2] << 8)  |
+                        ((uint32_t)src[3]);
+    }
+}
+
+void set_block_32(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, uint32_t block_size, uint32_t block_src[]) {
+
+    for (uint32_t y = 0; y < block_size; y++) {
+        uint8_t *dst = img + (j + y) * row_size + i / 8;
+        uint32_t val = block_src[y];
+        dst[3] = val & 0xFF;
+        dst[2] = (val >> 8) & 0xFF;
+        dst[1] = (val >> 16) & 0xFF;
+        dst[0] = (val >> 24) & 0xFF;
+    }
+}
+
+void rotate_row_32(uint32_t *row, uint32_t block_size, uint32_t shift_left) {
+    
+    if (shift_left == 0 || shift_left >= 32) {  // shift >= block size is UB
+        return;
+    }
+
+    // shift left to get the left half, shift right to get the wrap around
+    uint32_t valid_row = *row;
+    valid_row = ((valid_row << shift_left) | (valid_row >> (block_size - shift_left)));
+    *row = valid_row;
+
+}
+
+void rotate_block_32(uint32_t block_size, uint32_t block[]) {
+
+    uint32_t scratch[block_size];
+
+    // rotate row r left by r + 1
+    for (int r = 0; r < block_size; r++) {
+        rotate_row_32(&block[r], block_size, r + 1);
+    }
+
+    // rotate column c down by c + 1
+    // 1. column 16-31 down by 16 / up by 16
+    for (int r = 0; r < 32; r++)
+        scratch[r] = (block[r] & 0xFFFF0000) | (block[(r + 16) % 32] & 0x0000FFFF);
+
+    // 2. column 8-15, 24-31 down by 8 / up by 24
+    for (int r = 0; r < 32; r++)
+        block[r] = (scratch[r] & 0xFF00FF00) | (scratch[(r + 24) % 32] & 0x00FF00FF);
+
+    // 3. column 4-7, 12-15, 20-23... down by 4 / up by 28
+    for (int r = 0; r < 32; r++)
+        scratch[r] = (block[r] & 0xF0F0F0F0) | (block[(r + 28) % 32] & 0x0F0F0F0F);
+
+    // 4. column 2-3, 6-7, 10-11... down by 2 / up by 30
+    for (int r = 0; r < 32; r++)
+        block[r] = (scratch[r] & 0xCCCCCCCC) | (scratch[(r + 30) % 32] & 0x33333333);
+
+    // 5. odd columns down by 1 / up by 31
+    for (int r = 0; r < 32; r++)
+        scratch[r] = (block[r] & 0xAAAAAAAA) | (block[(r + 31) % 32] & 0x55555555);
+
+    // 6. all columns down by 1
+    for (int r = 0; r < 32; r++)
+        block[r] = (scratch[r] & 0x00000000) | (scratch[(r + 31) % 32] & 0xFFFFFFFF);
+
+    // rotate row r left by r
+    for (int r = 0; r < block_size; r++) {
+        rotate_row_32(&block[r], block_size, r);
+    }
+    
+}
