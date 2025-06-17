@@ -30,14 +30,8 @@ void get_block_64(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, 
 
     for (uint32_t y = 0; y < block_size; y++) {
         uint8_t *src = img + (j + y) * row_size + i / 8;
-        block_dst[y] = ((uint64_t)src[0] << 56) |
-                        ((uint64_t)src[1] << 48) |
-                        ((uint64_t)src[2] << 40) |
-                        ((uint64_t)src[3] << 32) |
-                        ((uint64_t)src[4] << 24) |
-                        ((uint64_t)src[5] << 16) |
-                        ((uint64_t)src[6] << 8)  |
-                        ((uint64_t)src[7]);
+        memcpy(&block_dst[y], src, sizeof(uint64_t));
+        block_dst[y] = __builtin_bswap64(block_dst[y]);
     }
 }
 
@@ -45,15 +39,8 @@ void set_block_64(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, 
 
     for (uint32_t y = 0; y < block_size; y++) {
         uint8_t *dst = img + (j + y) * row_size + i / 8;
-        uint64_t val = block_src[y];
-        dst[0] = (val >> 56) & 0xFF;
-        dst[1] = (val >> 48) & 0xFF;
-        dst[2] = (val >> 40) & 0xFF;
-        dst[3] = (val >> 32) & 0xFF;
-        dst[4] = (val >> 24) & 0xFF;
-        dst[5] = (val >> 16) & 0xFF;
-        dst[6] = (val >> 8)  & 0xFF;
-        dst[7] = val & 0xFF;
+        uint64_t val = __builtin_bswap64(block_src[y]);
+        memcpy(dst, &val, sizeof(uint64_t));
     }
 }
 
