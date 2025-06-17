@@ -293,3 +293,15 @@ void rotate_block_32(uint32_t block_size, uint32_t block[]) {
     }
     
 }
+
+// manually rotate row left for block size = 64
+void rotate_row_64(uint64_t *row, uint32_t block_size, uint32_t shift_left) {
+    
+    if (shift_left == 0 || shift_left >= block_size) {  // shift >= block size is UB
+        return;
+    }
+
+    uint64_t valid_row = *row;
+    valid_row = ((valid_row << shift_left) | (valid_row >> (block_size - shift_left)));
+    *row = valid_row;
+}

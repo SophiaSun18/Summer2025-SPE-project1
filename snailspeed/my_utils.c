@@ -57,24 +57,11 @@ void set_block_64(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, 
     }
 }
 
-void rotate_row_64(uint64_t *row, uint32_t block_size, uint32_t shift_left) {
-    
-    if (shift_left == 0 || shift_left >= block_size) {  // shift >= block size is UB
-        return;
-    }
-
-    uint64_t valid_row = *row;
-    valid_row = ((valid_row << shift_left) | (valid_row >> (block_size - shift_left)));
-    *row = valid_row;
-}
-
 void rotate_block_64(uint32_t block_size, uint64_t block[]) {
 
     // rotate row r left by r + 1
     for (int r = 0; r < block_size; r++) {
-        if (r + 1 < block_size) {
-            block[r] = ((block[r] << (r + 1)) | (block[r] >> (block_size - (r + 1))));
-        }
+        block[r] = __builtin_rotateleft64(block[r], r + 1);
     }
 
     uint64_t scratch[block_size];
@@ -104,9 +91,6 @@ void rotate_block_64(uint32_t block_size, uint64_t block[]) {
         
     // rotate row r left by r
     for (int r = 0; r < block_size; r++) {
-        if (r != 0 && r < block_size) {
-            block[r] = ((block[r] << r) | (block[r] >> (block_size - r)));
-        }
+        block[r] = __builtin_rotateleft64(block[r], r);
     } 
-
 }
