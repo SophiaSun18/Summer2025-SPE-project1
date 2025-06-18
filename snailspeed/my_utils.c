@@ -35,16 +35,7 @@ void get_block_64(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, 
     }
 }
 
-void set_block_64(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, uint32_t block_size, uint64_t block_src[]) {
-
-    for (uint32_t y = 0; y < block_size; y++) {
-        uint8_t *dst = img + (j + y) * row_size + i / 8;
-        uint64_t val = __builtin_bswap64(block_src[y]);
-        memcpy(dst, &val, sizeof(uint64_t));
-    }
-}
-
-void rotate_block_64(uint32_t block_size, uint64_t block[]) {
+void rotate_and_set_block_64(uint8_t *img, const bytes_t row_size, uint32_t di, uint32_t dj, uint32_t block_size, uint64_t block[]) {
 
     // rotate row r left by r + 1
     for (int r = 0; r < block_size; r++) {
@@ -74,10 +65,12 @@ void rotate_block_64(uint32_t block_size, uint64_t block[]) {
     for (int r = 0; r < 64; r++) {
         scratch[r] = block[(r + 63) % 64];
     }
-    memcpy(block, scratch, block_size * sizeof(uint64_t));
         
-    // rotate row r left by r
-    for (int r = 0; r < block_size; r++) {
-        block[r] = __builtin_rotateleft64(block[r], r);
-    } 
+    // rotate row r left by r and set back to the destination in the matrix
+    for (uint32_t y = 0; y < block_size; y++) {
+        scratch[y] = __builtin_rotateleft64(scratch[y], y);
+        uint8_t *dst = img + (dj + y) * row_size + di / 8;
+        uint64_t val = __builtin_bswap64(scratch[y]);
+        memcpy(dst, &val, sizeof(uint64_t));
+    }
 }

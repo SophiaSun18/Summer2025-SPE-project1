@@ -305,3 +305,50 @@ void rotate_row_64(uint64_t *row, uint32_t block_size, uint32_t shift_left) {
     valid_row = ((valid_row << shift_left) | (valid_row >> (block_size - shift_left)));
     *row = valid_row;
 }
+
+void set_block_64(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, uint32_t block_size, uint64_t block_src[]) {
+
+    for (uint32_t y = 0; y < block_size; y++) {
+        uint8_t *dst = img + (j + y) * row_size + i / 8;
+        uint64_t val = __builtin_bswap64(block_src[y]);
+        memcpy(dst, &val, sizeof(uint64_t));
+    }
+}
+
+void rotate_block_64(uint32_t block_size, uint64_t block[]) {
+
+    // rotate row r left by r + 1
+    for (int r = 0; r < block_size; r++) {
+        block[r] = __builtin_rotateleft64(block[r], r + 1);
+    }
+
+    uint64_t scratch[block_size];
+    // rotate column c down by c + 1
+    for (int r = 0; r < 64; r++) {
+        scratch[r] = (block[r] & 0xFFFFFFFF00000000ULL) | (block[(r + 32) % 64] & 0x00000000FFFFFFFFULL);
+    }
+    for (int r = 0; r < 64; r++) {
+        block[r] = (scratch[r] & 0xFFFF0000FFFF0000ULL) | (scratch[(r + 48) % 64] & 0x0000FFFF0000FFFFULL);
+    }
+    for (int r = 0; r < 64; r++) {
+        scratch[r] = (block[r] & 0xFF00FF00FF00FF00ULL) | (block[(r + 56) % 64] & 0x00FF00FF00FF00FFULL);
+    }
+    for (int r = 0; r < 64; r++) {
+        block[r] = (scratch[r] & 0xF0F0F0F0F0F0F0F0ULL) | (scratch[(r + 60) % 64] & 0x0F0F0F0F0F0F0F0FULL);
+    }
+    for (int r = 0; r < 64; r++) {
+        scratch[r] = (block[r] & 0xCCCCCCCCCCCCCCCCULL) | (block[(r + 62) % 64] & 0x3333333333333333ULL);
+    }
+    for (int r = 0; r < 64; r++) {
+        block[r] = (scratch[r] & 0xAAAAAAAAAAAAAAAAULL) | (scratch[(r + 63) % 64] & 0x5555555555555555ULL);
+    }
+    for (int r = 0; r < 64; r++) {
+        scratch[r] = block[(r + 63) % 64];
+    }
+    memcpy(block, scratch, block_size * sizeof(uint64_t));
+        
+    // rotate row r left by r
+    for (int r = 0; r < block_size; r++) {
+        block[r] = __builtin_rotateleft64(block[r], r);
+    } 
+}

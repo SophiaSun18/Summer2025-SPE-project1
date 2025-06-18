@@ -53,15 +53,10 @@ void rotate_bit_matrix(uint8_t *img, const bits_t N) {
       get_block_64(img, row_size, ni, nj, block_size, block2);
       get_block_64(img, row_size, j, ni, block_size, block3);
 
-      rotate_block_64(block_size, block0);
-      rotate_block_64(block_size, block1);
-      rotate_block_64(block_size, block2);
-      rotate_block_64(block_size, block3);
-
-      set_block_64(img, row_size, nj, i, block_size, block0);
-      set_block_64(img, row_size, ni, nj, block_size, block1);
-      set_block_64(img, row_size, j, ni, block_size, block2);
-      set_block_64(img, row_size, i, j, block_size, block3);
+      rotate_and_set_block_64(img, row_size, nj, i, block_size, block0);
+      rotate_and_set_block_64(img, row_size, ni, nj, block_size, block1);
+      rotate_and_set_block_64(img, row_size, j, ni, block_size, block2);
+      rotate_and_set_block_64(img, row_size, i, j, block_size, block3);
 
     }
   }
@@ -69,8 +64,7 @@ void rotate_bit_matrix(uint8_t *img, const bits_t N) {
   // if odd case, handle the middle block
   if (num_block % 2 != 0) {
     get_block_64(img, row_size, w_bound, w_bound, block_size, block0);
-    rotate_block_64(block_size, block0);
-    set_block_64(img, row_size, w_bound, w_bound, block_size, block0);
+    rotate_and_set_block_64(img, row_size, w_bound, w_bound, block_size, block0);
   }
 
   return;
