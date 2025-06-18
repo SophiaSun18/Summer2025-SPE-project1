@@ -47,46 +47,45 @@ void rotate_and_set_block_64(uint8_t *img, const bytes_t row_size, uint32_t di, 
 
     for (int r = 0; r < 32; r++) {
         scratch[r] = (block[r] & 0xFFFFFFFF00000000ULL) | (block[r + 32] & 0x00000000FFFFFFFFULL);
-    }
-    for (int r = 32; r < 64; r++) {
-        scratch[r] = (block[r] & 0xFFFFFFFF00000000ULL) | (block[r - 32] & 0x00000000FFFFFFFFULL);
+        scratch[r + 32] = (block[r + 32] & 0xFFFFFFFF00000000ULL) | (block[r] & 0x00000000FFFFFFFFULL);
     }
 
     for (int r = 0; r < 16; r++) {
         block[r] = (scratch[r] & 0xFFFF0000FFFF0000ULL) | (scratch[r + 48] & 0x0000FFFF0000FFFFULL);
-    }for (int r = 16; r < 64; r++) {
-        block[r] = (scratch[r] & 0xFFFF0000FFFF0000ULL) | (scratch[r - 16] & 0x0000FFFF0000FFFFULL);
+    }
+    for (int r = 0; r < 48; r++) {
+        block[r + 16] = (scratch[r + 16] & 0xFFFF0000FFFF0000ULL) | (scratch[r] & 0x0000FFFF0000FFFFULL);
     }
 
     for (int r = 0; r < 8; r++) {
         scratch[r] = (block[r] & 0xFF00FF00FF00FF00ULL) | (block[r + 56] & 0x00FF00FF00FF00FFULL);
     }
-    for (int r = 8; r < 64; r++) {
-        scratch[r] = (block[r] & 0xFF00FF00FF00FF00ULL) | (block[r - 8] & 0x00FF00FF00FF00FFULL);
+    for (int r = 0; r < 56; r++) {
+        scratch[r + 8] = (block[r + 8] & 0xFF00FF00FF00FF00ULL) | (block[r] & 0x00FF00FF00FF00FFULL);
     }
 
     for (int r = 0; r < 4; r++) {
         block[r] = (scratch[r] & 0xF0F0F0F0F0F0F0F0ULL) | (scratch[r + 60] & 0x0F0F0F0F0F0F0F0FULL);
     }
-    for (int r = 4; r < 64; r++) {
-        block[r] = (scratch[r] & 0xF0F0F0F0F0F0F0F0ULL) | (scratch[r - 4] & 0x0F0F0F0F0F0F0F0FULL);
+    for (int r = 0; r < 60; r++) {
+        block[r + 4] = (scratch[r + 4] & 0xF0F0F0F0F0F0F0F0ULL) | (scratch[r] & 0x0F0F0F0F0F0F0F0FULL);
     }
 
     for (int r = 0; r < 2; r++) {
         scratch[r] = (block[r] & 0xCCCCCCCCCCCCCCCCULL) | (block[r + 62] & 0x3333333333333333ULL);
     }
-    for (int r = 2; r < 64; r++) {
-        scratch[r] = (block[r] & 0xCCCCCCCCCCCCCCCCULL) | (block[r - 2] & 0x3333333333333333ULL);
+    for (int r = 0; r < 62; r++) {
+        scratch[r + 2] = (block[r + 2] & 0xCCCCCCCCCCCCCCCCULL) | (block[r] & 0x3333333333333333ULL);
     }
 
     block[0] = (scratch[0] & 0xAAAAAAAAAAAAAAAAULL) | (scratch[63] & 0x5555555555555555ULL);
-    for (int r = 1; r < 64; r++) {
-        block[r] = (scratch[r] & 0xAAAAAAAAAAAAAAAAULL) | (scratch[r - 1] & 0x5555555555555555ULL);
+    for (int r = 0; r < 63; r++) {
+        block[r + 1] = (scratch[r + 1] & 0xAAAAAAAAAAAAAAAAULL) | (scratch[r] & 0x5555555555555555ULL);
     }
 
     scratch[0] = block[63];
-    for (int r = 1; r < 64; r++) {
-        scratch[r] = block[r - 1];
+    for (int r = 0; r < 63; r++) {
+        scratch[r + 1] = block[r];
     }
         
     // rotate row r left by r and set back to the destination in the matrix

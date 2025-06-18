@@ -55,7 +55,7 @@ UBSAN := 0
 CC := clang-spe
 
 # Architecture supports up to AVX 512
-ARCH := x86-64-v4
+ARCH := x86-64-v3
 
 # You can modify these flags if you know what to do.
 CFLAGS := -Wall -ftree-vectorize -flto
