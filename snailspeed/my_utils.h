@@ -34,7 +34,7 @@
 typedef size_t bytes_t;
 
 // Your utility functions go here
-void get_block_64(uint8_t *img, const bytes_t row_size, uint32_t i, uint32_t j, uint32_t block_size, uint64_t block_dst[]);
-void rotate_and_set_block_64(uint8_t *img, const bytes_t row_size, uint32_t di, uint32_t dj, uint32_t block_size, uint64_t block[]);
+void get_block_64(uint64_t *img, const bytes_t row_size, uint32_t i, uint32_t j, uint64_t block_dst[]);
+void rotate_and_set_block_64(uint64_t *img, const bytes_t row_size, uint32_t di, uint32_t dj, uint64_t block[]);
 
 #endif  // MY_UTILS_H

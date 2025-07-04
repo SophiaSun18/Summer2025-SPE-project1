@@ -29,42 +29,40 @@
 //
 // The bit array is of `N` by `N` bits where N is a multiple of 64
 void rotate_bit_matrix(uint8_t *img, const bits_t N) {
-  // Get the number of bytes per row in `img`
-  const uint32_t row_size = bits_to_bytes(N);
+
+  uint64_t *int64_img = (uint64_t *) img;
   const uint32_t block_size = 64;
-  uint32_t num_block = N / block_size;
+  const uint32_t row_size = N / 64;
 
-  // If the number of block per row is an odd value, set w_bound to be less than N/2 to avoid duplicate rotation
-  uint32_t w_bound = (num_block % 2 == 0) ? (num_block * 32) : (num_block - 1) * 32;
+  uint64_t tmp_block[64], save_block[64];
+  uint32_t h_bound = N/2, w_bound = N/2;
 
-  uint64_t block0[block_size];
-  uint64_t block1[block_size];
-  uint64_t block2[block_size];
-  uint64_t block3[block_size];
-
-  uint32_t w, h;
-  for (h = 0; h < N/2; h += block_size) {
-    for (w = 0; w < w_bound; w += block_size) {
-
-      uint32_t i = w, j = h, ni = N - i - block_size, nj = N - j - block_size;
-
-      get_block_64(img, row_size, i, j, block_size, block0);
-      get_block_64(img, row_size, nj, i, block_size, block1);
-      get_block_64(img, row_size, ni, nj, block_size, block2);
-      get_block_64(img, row_size, j, ni, block_size, block3);
-
-      rotate_and_set_block_64(img, row_size, nj, i, block_size, block0);
-      rotate_and_set_block_64(img, row_size, ni, nj, block_size, block1);
-      rotate_and_set_block_64(img, row_size, j, ni, block_size, block2);
-      rotate_and_set_block_64(img, row_size, i, j, block_size, block3);
-
-    }
+  // if odd case, set up different w_bound and handle the middle block
+  if (row_size % 2 != 0) {
+    w_bound = (row_size - 1) * 32;
+    get_block_64(int64_img, row_size, w_bound, w_bound, tmp_block);
+    rotate_and_set_block_64(int64_img, row_size, w_bound, w_bound, tmp_block);
   }
 
-  // if odd case, handle the middle block
-  if (num_block % 2 != 0) {
-    get_block_64(img, row_size, w_bound, w_bound, block_size, block0);
-    rotate_and_set_block_64(img, row_size, w_bound, w_bound, block_size, block0);
+  uint32_t w, h;
+  for (h = 0; h < h_bound; h += block_size) {
+    for (w = 0; w < w_bound; w += block_size) {
+      
+      uint32_t i = w, j = h, ni = N - i - block_size, nj = N - j - block_size;
+
+      get_block_64(int64_img, row_size, i, j, tmp_block);
+
+      get_block_64(int64_img, row_size, nj, i, save_block);
+      rotate_and_set_block_64(int64_img, row_size, nj, i, tmp_block);
+
+      get_block_64(int64_img, row_size, ni, nj, tmp_block);
+      rotate_and_set_block_64(int64_img, row_size, ni, nj, save_block);
+
+      get_block_64(int64_img, row_size, j, ni, save_block);
+      rotate_and_set_block_64(int64_img, row_size, j, ni, tmp_block);
+
+      rotate_and_set_block_64(int64_img, row_size, i, j, save_block);
+    }
   }
 
   return;
