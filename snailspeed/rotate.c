@@ -31,7 +31,8 @@
 void rotate_bit_matrix(uint8_t *img, const bits_t N) {
 
   uint64_t *int64_img = (uint64_t *) img;
-  const uint32_t block_size = 64;
+  const uint32_t outer_tile_size = 512;
+  const uint32_t inner_tile_size = 64;
   const uint32_t row_size = N / 64;
 
   uint64_t tmp_block[64], save_block[64];
@@ -44,25 +45,54 @@ void rotate_bit_matrix(uint8_t *img, const bits_t N) {
     rotate_and_set_block_64(int64_img, row_size, w_bound, w_bound, tmp_block);
   }
 
-  uint32_t w, h;
-  for (h = 0; h < h_bound; h += block_size) {
-    for (w = 0; w < w_bound; w += block_size) {
-      
-      uint32_t i = w, j = h, ni = N - i - block_size, nj = N - j - block_size;
+  uint32_t ow, oh, w, h;
 
-      get_block_64(int64_img, row_size, i, j, tmp_block);
-
-      get_block_64(int64_img, row_size, nj, i, save_block);
-      rotate_and_set_block_64(int64_img, row_size, nj, i, tmp_block);
-
-      get_block_64(int64_img, row_size, ni, nj, tmp_block);
-      rotate_and_set_block_64(int64_img, row_size, ni, nj, save_block);
-
-      get_block_64(int64_img, row_size, j, ni, save_block);
-      rotate_and_set_block_64(int64_img, row_size, j, ni, tmp_block);
-
-      rotate_and_set_block_64(int64_img, row_size, i, j, save_block);
+  // if matrix size is smaller than 2 * outer_tile_size, use 1-layer tiling
+  // if not, matrix size is larger enough for 2-layer tiling
+  if (N < 2 * outer_tile_size) {
+    for (h = 0; h < h_bound; h += inner_tile_size) {
+      for (w = 0; w < w_bound; w += inner_tile_size) {
+        
+        uint32_t i = w, j = h, ni = N - i - inner_tile_size, nj = N - j - inner_tile_size;
+  
+        get_block_64(int64_img, row_size, i, j, tmp_block);
+  
+        get_block_64(int64_img, row_size, nj, i, save_block);
+        rotate_and_set_block_64(int64_img, row_size, nj, i, tmp_block);
+  
+        get_block_64(int64_img, row_size, ni, nj, tmp_block);
+        rotate_and_set_block_64(int64_img, row_size, ni, nj, save_block);
+  
+        get_block_64(int64_img, row_size, j, ni, save_block);
+        rotate_and_set_block_64(int64_img, row_size, j, ni, tmp_block);
+  
+        rotate_and_set_block_64(int64_img, row_size, i, j, save_block);
+      }
     }
+  } else {
+    for (oh = 0; oh < h_bound; oh += outer_tile_size) {
+      for (ow = 0; ow < w_bound; ow += outer_tile_size) {
+        for (h = oh; h < oh + outer_tile_size && h < h_bound; h += inner_tile_size) {
+          for (w = ow; w < ow + outer_tile_size && w < w_bound; w += inner_tile_size) {
+            
+            uint32_t i = w, j = h, ni = N - i - inner_tile_size, nj = N - j - inner_tile_size;
+  
+            get_block_64(int64_img, row_size, i, j, tmp_block);
+  
+            get_block_64(int64_img, row_size, nj, i, save_block);
+            rotate_and_set_block_64(int64_img, row_size, nj, i, tmp_block);
+  
+            get_block_64(int64_img, row_size, ni, nj, tmp_block);
+            rotate_and_set_block_64(int64_img, row_size, ni, nj, save_block);
+  
+            get_block_64(int64_img, row_size, j, ni, save_block);
+            rotate_and_set_block_64(int64_img, row_size, j, ni, tmp_block);
+  
+            rotate_and_set_block_64(int64_img, row_size, i, j, save_block);
+          }
+        }
+      }
+    } 
   }
 
   return;
