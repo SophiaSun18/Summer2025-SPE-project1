@@ -352,3 +352,88 @@ void rotate_block_64(uint32_t block_size, uint64_t block[]) {
         block[r] = __builtin_rotateleft64(block[r], r);
     } 
 }
+
+typedef uint64_t vec_64tx4 __attribute__((__vector_size__(32)));
+const vec_64tx4 stay_masks[] = {
+    {0xFFFFFFFF00000000ULL, 0xFFFFFFFF00000000ULL, 0xFFFFFFFF00000000ULL, 0xFFFFFFFF00000000ULL},
+    {0xFFFF0000FFFF0000ULL, 0xFFFF0000FFFF0000ULL, 0xFFFF0000FFFF0000ULL, 0xFFFF0000FFFF0000ULL},
+    {0xFF00FF00FF00FF00ULL, 0xFF00FF00FF00FF00ULL, 0xFF00FF00FF00FF00ULL, 0xFF00FF00FF00FF00ULL},
+    {0xF0F0F0F0F0F0F0F0ULL, 0xF0F0F0F0F0F0F0F0ULL, 0xF0F0F0F0F0F0F0F0ULL, 0xF0F0F0F0F0F0F0F0ULL}
+};
+
+void rotate_and_set_block_64(uint64_t *img, const bytes_t row_size, uint32_t di, uint32_t dj, uint64_t block[]) {
+
+    // rotate row r left by r + 1
+    for (int r = 0; r < 64; r++) {
+        block[r] = __builtin_rotateleft64(block[r], r + 1);
+    }
+
+    // rotate column c down by c + 1
+    uint64_t scratch[64];
+    int r;
+
+    vec_64tx4 block_vec[16], scratch_vec[16];
+    int vec_size = sizeof(vec_64tx4) / sizeof(uint64_t); // 4
+
+    // vectorization, load the block into vector
+    for (r = 0; r < 64; r+=vec_size) {
+        for (int e = 0; e < vec_size; e++) {
+            block_vec[r / vec_size][e] = block[r + e];
+        }
+    }
+
+    for (r = 0; r < 8; r++) {
+        scratch_vec[r] = (block_vec[r] & stay_masks[0]) | (block_vec[r + 8] & ~stay_masks[0]);
+        scratch_vec[r + 8] = (block_vec[r + 8] & stay_masks[0]) | (block_vec[r] & ~stay_masks[0]);
+    }
+
+    for (r = 0; r < 4; r++) {
+        block_vec[r] = (scratch_vec[r] & stay_masks[1]) | (scratch_vec[r + 12] & ~stay_masks[1]);
+    }
+    for (r = 0; r < 12; r++) {
+        block_vec[r + 4] = (scratch_vec[r + 4] & stay_masks[1]) | (scratch_vec[r] & ~stay_masks[1]);
+    }
+
+    for (r = 0; r < 2; r++) {
+        scratch_vec[r] = (block_vec[r] & stay_masks[2]) | (block_vec[r + 14] & ~stay_masks[2]);
+    }
+    for (r = 0; r < 14; r++) {
+        scratch_vec[r + 2] = (block_vec[r + 2] & stay_masks[2]) | (block_vec[r] & ~stay_masks[2]);
+    }
+
+    block_vec[0] = (scratch_vec[0] & stay_masks[3]) | (scratch_vec[15] & ~stay_masks[3]);
+    for (r = 0; r < 15; r++) {
+        block_vec[r + 1] = (scratch_vec[r + 1] & stay_masks[3]) | (scratch_vec[r] & ~stay_masks[3]);
+    }
+
+    // store the vec back to block as the following case is easier to handle in block
+    for (r = 0; r < 64; r+=vec_size) {
+        for (int e = 0; e < vec_size; e++) {
+            block[r + e] = block_vec[r / vec_size][e];
+        }
+    }
+
+    for (r = 0; r < 2; r++) {
+        scratch[r] = (block[r] & 0xCCCCCCCCCCCCCCCC) | (block[r + 62] & 0x3333333333333333);
+    }
+    for (r = 0; r < 62; r++) {
+        scratch[r + 2] = (block[r + 2] & 0xCCCCCCCCCCCCCCCC) | (block[r] & 0x3333333333333333);
+    }
+
+    block[0] = (scratch[0] & 0xAAAAAAAAAAAAAAAA) | (scratch[63] & 0x5555555555555555);
+    for (r = 0; r < 63; r++) {
+        block[r + 1] = (scratch[r + 1] & 0xAAAAAAAAAAAAAAAA) | (scratch[r] & 0x5555555555555555);
+    }
+
+    scratch[0] = block[63];
+    for (r = 0; r < 63; r++) {
+        scratch[r + 1] = block[r];
+    }
+    
+    // rotate row r left by r and set back to the destination in the matrix
+    int word_offset = di / 64;
+    for (int y = 0; y < 64; y++) {
+        scratch[y] = __builtin_rotateleft64(scratch[y], y);
+        img[(dj + y) * row_size + word_offset] = __builtin_bswap64(scratch[y]);
+    }
+}
